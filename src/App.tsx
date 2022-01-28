@@ -8,7 +8,8 @@ import './App.css';
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState('');
 
-  const contractAddress = import.meta.env.CONTRACT_ADDRESS;
+  const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS as string;
+  console.log({ contractAddress });
   const contractABI = wavePortalArtifact.abi;
 
   const checkIfWalletIsConnected = async () => {
