@@ -3,10 +3,10 @@ import { ethers } from 'ethers';
 
 import wavePortalArtifact from './utils/WavePortal.json';
 
-import './App.css';
-
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState('');
+  const [waveCount, setWaveCount] = useState();
+  const [loading, setLoading] = useState<boolean>(false);
 
   const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 
@@ -57,6 +57,7 @@ export default function App() {
 
   const wave = async () => {
     try {
+      setLoading(true);
       const { ethereum } = window;
 
       if (ethereum) {
@@ -78,11 +79,13 @@ export default function App() {
         console.log('Mined -- ', waveTxn.hash);
 
         count = await wavePortalContract.getTotalWaves();
-        console.log('Retrieved total wave count ...', count.toNumber());
+        setWaveCount(count.toNumber());
       } else {
         console.log("Ethereum object doesn't exist");
       }
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       console.log(error);
     }
   };
@@ -92,18 +95,54 @@ export default function App() {
   });
 
   return (
-    <div className="mainContainer">
+    <div className="min-h-screen flex flex-col justify-center content-center text-center items-center">
       <div className="dataContainer">
-        <div className="header">👋 It's live!</div>
+        <h2 className="text-3xl font-bold mb-8">👋 Welcome everybody!</h2>
 
-        <div className="bio">Go ahead and click the button.</div>
+        <p className="bio">Go ahead and click the button.</p>
 
-        <button className="waveButton" onClick={wave}>
-          Wave at Me
+        <h1 className="transition ease-in-out mt-4 mb-2 text-4xl font-bold text-green-700">
+          {waveCount || 'unknown'}
+        </h1>
+        <p className="text-green-600">click(s)</p>
+
+        <button
+          type="button"
+          className="mt-10 inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400 transition ease-in-out duration-150"
+          disabled={loading}
+          onClick={wave}
+        >
+          {loading && (
+            <svg
+              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          )}
+          {loading ? 'Mining...' : 'Wave at me!'}
         </button>
 
         {!currentAccount && (
-          <button className="waveButton" onClick={connectWallet}>
+          <button
+            type="button"
+            className="bg-indigo-500"
+            onClick={connectWallet}
+          >
             Connect Wallet
           </button>
         )}
