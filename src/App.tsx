@@ -64,7 +64,7 @@ export default function App() {
         <h1 className="transition ease-in-out mt-4 mb-2 text-4xl font-bold text-green-700">
           {waveCount || '-'}
         </h1>
-        <p className="text-green-600">click(s)</p>
+        <p className="text-green-600">greeting(s)</p>
 
         <div className="flex flex-col items-center">
           <button
