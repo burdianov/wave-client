@@ -10,7 +10,6 @@ export default function App() {
 
   const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 
-  console.log({ contractAddress });
   const contractABI = wavePortalArtifact.abi;
 
   const checkIfWalletIsConnected = async () => {
