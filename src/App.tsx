@@ -8,7 +8,8 @@ import './App.css';
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState('');
 
-  const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS as string;
+  const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+
   console.log({ contractAddress });
   const contractABI = wavePortalArtifact.abi;
 
