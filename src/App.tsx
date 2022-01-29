@@ -9,8 +9,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [waveCount, setWaveCount] = useState();
   const [allWaves, setAllWaves] = useState([]);
-
-  const messageRef = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState('');
 
   const [contract] = useContract();
 
@@ -65,50 +64,64 @@ export default function App() {
   };
 
   const wave = async () => {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    if (contract) {
-      let message = messageRef?.current?.value;
+      if (contract) {
+        const waveTxn = await contract.wave(message || 'Placeholder message');
+        console.log('Mining...', waveTxn.hash);
 
-      if (!message) {
-        message = 'Placeholder message';
+        await waveTxn.wait();
+        console.log('Mined -- ', waveTxn.hash);
+
+        const count = await contract.getTotalWaves();
+        setWaveCount(count.toNumber());
+
+        getAllWaves();
+        setMessage('');
       }
-      const waveTxn = await contract.wave(message);
-      console.log('Mining...', waveTxn.hash);
 
-      await waveTxn.wait();
-      console.log('Mined -- ', waveTxn.hash);
-
-      const count = await contract.getTotalWaves();
-      setWaveCount(count.toNumber());
-
-      getAllWaves();
+      setLoading(false);
+    } catch (error) {
+      console.log(error.message);
+      setLoading(false);
     }
-
-    setLoading(false);
-  };
-
-  const getWaveCount = async () => {
-    const count = await contract.getTotalWaves();
-    setWaveCount(count.toNumber());
   };
 
   const getAllWaves = async () => {
-    const waves = await contract.getAllWaves();
+    try {
+      const waves = await contract.getAllWaves();
 
-    let wavesCleaned = [];
+      let wavesCleaned = [];
 
-    waves.forEach((wave) => {
-      const date = new Date(wave.timestamp * 1000);
-      wavesCleaned.push({
-        address: wave.waver,
-        timestamp: date.toLocaleString(),
-        message: wave.message
+      waves.forEach((wave) => {
+        const date = new Date(wave.timestamp * 1000);
+        wavesCleaned.push({
+          address: wave.waver,
+          timestamp: date.toLocaleString(),
+          message: wave.message
+        });
       });
-    });
 
-    setAllWaves(wavesCleaned);
-    setWaveCount(wavesCleaned.length);
+      console.log('>>>>', wavesCleaned);
+
+      wavesCleaned.sort(function (a, b) {
+        if (a.timestamp < b.timestamp) {
+          return -1;
+        }
+        if (a.timestamp > b.timestamp) {
+          return -1;
+        }
+        return 0;
+      });
+
+      console.log('<<<', wavesCleaned);
+
+      setAllWaves(wavesCleaned);
+      setWaveCount(wavesCleaned.length);
+    } catch (error) {
+      console.log(error.message);
+    }
   };
 
   return (
@@ -131,7 +144,8 @@ export default function App() {
               </label>
               <input
                 disabled={loading}
-                ref={messageRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 type="text"
                 placeholder="Type your message ..."
                 id="message"
