@@ -103,8 +103,6 @@ export default function App() {
         });
       });
 
-      console.log('>>>>', wavesCleaned);
-
       wavesCleaned.sort(function (a, b) {
         if (a.timestamp < b.timestamp) {
           return -1;
@@ -114,8 +112,6 @@ export default function App() {
         }
         return 0;
       });
-
-      console.log('<<<', wavesCleaned);
 
       setAllWaves(wavesCleaned);
       setWaveCount(wavesCleaned.length);
