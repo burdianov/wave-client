@@ -1,11 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import useEthers from './hooks/useEthers';
+import useContract from './hooks/useContract';
+import LoadingButton from './components/LoadingButton';
+import Waves from './components/Waves';
 
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [waveCount, setWaveCount] = useState();
+  const [allWaves, setAllWaves] = useState([]);
 
-  const [waveCount, wave, loading] = useEthers();
+  const messageRef = useRef<HTMLInputElement>(null);
+
+  const [contract] = useContract();
+
+  useEffect(() => {
+    checkIfWalletIsConnected();
+    if (contract) {
+      getAllWaves();
+    }
+  }, [contract]);
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -50,53 +64,82 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    checkIfWalletIsConnected();
-  });
+  const wave = async () => {
+    setLoading(true);
+
+    if (contract) {
+      let message = messageRef?.current?.value;
+
+      if (!message) {
+        message = 'Placeholder message';
+      }
+      const waveTxn = await contract.wave(message);
+      console.log('Mining...', waveTxn.hash);
+
+      await waveTxn.wait();
+      console.log('Mined -- ', waveTxn.hash);
+
+      const count = await contract.getTotalWaves();
+      setWaveCount(count.toNumber());
+
+      getAllWaves();
+    }
+
+    setLoading(false);
+  };
+
+  const getWaveCount = async () => {
+    const count = await contract.getTotalWaves();
+    setWaveCount(count.toNumber());
+  };
+
+  const getAllWaves = async () => {
+    const waves = await contract.getAllWaves();
+
+    let wavesCleaned = [];
+
+    waves.forEach((wave) => {
+      const date = new Date(wave.timestamp * 1000);
+      wavesCleaned.push({
+        address: wave.waver,
+        timestamp: date.toLocaleString(),
+        message: wave.message
+      });
+    });
+
+    setAllWaves(wavesCleaned);
+    setWaveCount(wavesCleaned.length);
+  };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center content-center text-center items-center">
+    <div className="flex flex-col content-center text-center items-center">
       <div className="dataContainer">
-        <h2 className="text-3xl font-bold mb-8">Welcome everybody!</h2>
-
-        <p className="bio">Go ahead and click the button.</p>
+        <h2 className="text-3xl font-bold mb-8">Message Board</h2>
 
         <h1 className="transition ease-in-out mt-4 mb-2 text-4xl font-bold text-green-700">
-          {waveCount || '-'}
+          {waveCount}
         </h1>
-        <p className="text-green-600">greeting(s)</p>
+        <p className="text-green-600">message(s)</p>
 
-        <div className="flex flex-col items-center">
-          <button
-            type="button"
-            className="mt-10 inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400 transition ease-in-out duration-150"
-            disabled={loading}
-            onClick={wave}
-          >
-            {loading && (
-              <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            )}
-            {loading ? 'Mining...' : '👋 Wave at me!'}
-          </button>
+        <p className="my-4">Type a message and send me a wave.</p>
+
+        <div className="flex flex-col items-center my-2">
+          <div className="flex items-center w-[100%] justify-between">
+            <div className="flex flex-1 mr-2 items-center">
+              <label htmlFor="message" className="text-lx">
+                Message:
+              </label>
+              <input
+                disabled={loading}
+                ref={messageRef}
+                type="text"
+                placeholder="Type your message ..."
+                id="message"
+                className="flex-1 ml-2 outline-none py-2 px-2 text-md border-[1px] rounded-md"
+              />
+            </div>
+            <LoadingButton loading={loading} wave={wave} />
+          </div>
 
           {!currentAccount && (
             <button
@@ -107,6 +150,8 @@ export default function App() {
               Connect Wallet
             </button>
           )}
+
+          {allWaves && <Waves allWaves={allWaves} />}
         </div>
       </div>
     </div>
