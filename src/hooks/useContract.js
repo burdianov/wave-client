@@ -6,7 +6,7 @@ import wavePortalArtifact from '../utils/WavePortal.json';
 const useContract = () => {
   const [contract, setContract] = useState();
 
-  const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+  const contractAddress = '0x05f73dfa8cea5b9ff76e04b09593f980f81a47ef';
 
   const contractABI = wavePortalArtifact.abi;
 
