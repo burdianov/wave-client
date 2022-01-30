@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
 
-import useContract from './hooks/useContract';
 import LoadingButton from './components/LoadingButton';
 import Waves from './components/Waves';
+
+import background from './svg/ethereum.svg';
+
+import wavePortalArtifact from './utils/WavePortal.json';
 
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState('');
@@ -11,14 +15,51 @@ export default function App() {
   const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState('');
 
-  const [contract] = useContract();
+  const contractAddress = '0x1a9c97E3348Aa6472763594cFF541501c47f9031';
+
+  const contractABI = wavePortalArtifact.abi;
 
   useEffect(() => {
     checkIfWalletIsConnected();
-    if (contract) {
-      getAllWaves();
+    getAllWaves();
+  }, []);
+
+  useEffect(() => {
+    const onNewWave = (from, message, timestamp) => {
+      console.log('NewWave', from, timestamp, message);
+
+      const date = new Date(timestamp * 1000);
+
+      setAllWaves((prevState) => [
+        {
+          address: from,
+          timestamp: date.toLocaleString(),
+          message
+        },
+        ...prevState
+      ]);
+    };
+
+    let wavePortalContract;
+
+    if (window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+
+      wavePortalContract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      );
+      wavePortalContract.on('NewWave', onNewWave);
     }
-  }, [contract]);
+
+    return () => {
+      if (wavePortalContract) {
+        wavePortalContract.off('NewWave', onNewWave);
+      }
+    };
+  }, []);
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -67,20 +108,31 @@ export default function App() {
     try {
       setLoading(true);
 
-      if (contract) {
-        const waveTxn = await contract.wave(message || 'Placeholder message');
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(
+          contractAddress,
+          contractABI,
+          signer
+        );
+
+        const waveTxn = await wavePortalContract.wave(
+          message || 'Placeholder message',
+          {
+            gasLimit: 300000
+          }
+        );
         console.log('Mining...', waveTxn.hash);
 
         await waveTxn.wait();
         console.log('Mined -- ', waveTxn.hash);
 
-        const count = await contract.getTotalWaves();
+        const count = await wavePortalContract.getTotalWaves();
         setWaveCount(count.toNumber());
 
-        getAllWaves();
         setMessage('');
       }
-
       setLoading(false);
     } catch (error) {
       console.log(error.message);
@@ -89,81 +141,105 @@ export default function App() {
   };
 
   const getAllWaves = async () => {
+    const { ethereum } = window;
+
     try {
-      const waves = await contract.getAllWaves();
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(
+          contractAddress,
+          contractABI,
+          signer
+        );
+        const waves = await wavePortalContract.getAllWaves();
 
-      let wavesCleaned = [];
+        let wavesCleaned = [];
 
-      waves.forEach((wave) => {
-        const date = new Date(wave.timestamp * 1000);
-        wavesCleaned.push({
-          address: wave.waver,
-          timestamp: date.toLocaleString(),
-          message: wave.message
+        waves.forEach((wave) => {
+          const date = new Date(wave.timestamp * 1000);
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: date.toLocaleString(),
+            message: wave.message
+          });
         });
-      });
 
-      wavesCleaned.sort(function (a, b) {
-        if (a.timestamp < b.timestamp) {
-          return -1;
-        }
-        if (a.timestamp > b.timestamp) {
-          return -1;
-        }
-        return 0;
-      });
+        wavesCleaned.sort(function (a, b) {
+          if (a.timestamp < b.timestamp) {
+            return -1;
+          }
+          if (a.timestamp > b.timestamp) {
+            return -1;
+          }
+          return 0;
+        });
 
-      setAllWaves(wavesCleaned);
-      setWaveCount(wavesCleaned.length);
+        setAllWaves(wavesCleaned);
+      }
     } catch (error) {
       console.log(error.message);
     }
   };
 
-  return (
-    <div className="flex flex-col content-center text-center items-center">
-      <div className="dataContainer">
-        <h2 className="text-3xl font-bold mb-8">Message Board</h2>
-
-        <h1 className="transition ease-in-out mt-4 mb-2 text-4xl font-bold text-green-700">
-          {waveCount}
-        </h1>
-        <p className="text-green-600">message(s)</p>
-
-        <p className="my-4">Type a message and send me a wave.</p>
-
-        <div className="flex flex-col items-center my-2">
-          <div className="flex items-center w-[100%] justify-between">
-            <div className="flex flex-1 mr-2 items-center">
-              <label htmlFor="message" className="text-lx">
-                Message:
-              </label>
-              <input
-                disabled={loading}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                type="text"
-                placeholder="Type your message ..."
-                id="message"
-                className="flex-1 ml-2 outline-none py-2 px-2 text-md border-[1px] rounded-md"
-              />
-            </div>
-            <LoadingButton loading={loading} wave={wave} />
-          </div>
-
-          {!currentAccount && (
-            <button
-              type="button"
-              className="mt-4 inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-green-500 hover:bg-green-400 transition ease-in-out duration-150"
-              onClick={connectWallet}
-            >
-              Connect Wallet
-            </button>
-          )}
-
-          {allWaves && <Waves allWaves={allWaves} />}
+  const connectWalletButton = (
+    <div
+      style={{
+        backgroundImage: `url(${background})`,
+        height: '100vh'
+      }}
+      className="w-100 flex content-center items-center justify-center"
+    >
+      <div className="flex h-[94vh] overflow-auto min-w-[80vw] bg-gray-200 shadow-xl">
+        <div className="w-[100%] text-center h-[100%] flex flex-col items-center justify-center">
+          <button
+            type="button"
+            className="w-40 px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-green-500 hover:bg-green-400 transition ease-in-out duration-150"
+            onClick={connectWallet}
+          >
+            Connect Wallet
+          </button>
         </div>
       </div>
     </div>
   );
+
+  const { ethereum } = window;
+
+  if (!ethereum) {
+    return connectWalletButton;
+  } else {
+    return (
+      <div
+        style={{
+          backgroundImage: `url(${background})`,
+          height: '100vh'
+        }}
+        className="w-100 flex content-center items-center justify-center"
+      >
+        <div className="flex flex-col h-[94vh] bg-gray-200 shadow-xl">
+          <div className="flex overflow-auto min-w-[80vw] scrollbar scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-100">
+            <div className="flex flex-col justify-between my-2 w-[100%]">
+              <div className="flex-1">
+                {allWaves && <Waves allWaves={allWaves} />}
+              </div>
+            </div>
+          </div>
+          <div className="flex-1"></div>
+          <div className="mt-2 mb-2 flex items-center w-[100%]">
+            <input
+              disabled={loading}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              type="text"
+              placeholder="Type a message ..."
+              id="message"
+              className="flex-1 ml-4 mr-2 outline-none py-2 px-2 text-md border-[1px] rounded-md"
+            />
+            <LoadingButton loading={loading} wave={wave} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 }

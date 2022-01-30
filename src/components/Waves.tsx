@@ -4,40 +4,30 @@ export type Wave = {
   timestamp: string;
 };
 
-interface SingleWaveProps {
-  label: string;
-  value: string;
-}
-
 interface WavesProps {
   allWaves: Wave[];
 }
 
-const SingleWave = ({ label, value }: SingleWaveProps) => {
-  return (
-    <div className="flex justify-between">
-      <div className="font-bold">{label}:</div>
-      <div>{value}</div>
-    </div>
-  );
-};
-
 const Waves = ({ allWaves }: WavesProps) => {
   return (
-    <>
+    <div>
       {allWaves.map((wave, index) => {
         return (
           <div
             key={index}
-            className="mt-2 flex flex-col rounded border-[1px] py-2 px-4 w-[60vw] shadow-lg"
+            className="mt-4 mx-4 flex flex-col rounded border-[1px] py-2 px-4 bg-green-100 shadow-lg"
           >
-            <SingleWave label="Address" value={wave.address.toString()} />
-            <SingleWave label="Message" value={wave.message} />
-            <SingleWave label="Time" value={wave.timestamp.toString()} />
+            <div className="text-gray-500">
+              Sender: {wave.address.toString()}
+            </div>
+            <div className="text-lg">{wave.message.toString()}</div>
+            <div className="ml-auto text-sm text-gray-500">
+              {wave.timestamp.toString()}
+            </div>
           </div>
         );
       })}
-    </>
+    </div>
   );
 };
 

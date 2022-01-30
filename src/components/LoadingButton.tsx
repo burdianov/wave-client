@@ -7,7 +7,7 @@ const LoadingButton = ({ loading, wave }: Props) => {
   return (
     <button
       type="button"
-      className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400 transition ease-in-out duration-150"
+      className="mr-4 inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400 transition ease-in-out duration-150"
       disabled={loading}
       onClick={wave}
     >
@@ -33,7 +33,7 @@ const LoadingButton = ({ loading, wave }: Props) => {
           ></path>
         </svg>
       )}
-      {loading ? 'Mining...' : '👋 Wave at me!'}
+      {loading ? 'Processing...' : '👋 Wave at me!'}
     </button>
   );
 };
